@@ -11,7 +11,7 @@ An AI-powered Streamlit app that converts note images into Bangla summaries, aud
 
 <div align="center">
 <!-- Animated header banner -->
-<img width="100%" src="https://capsule-render.vercel.app/api?type=waving&color=0:0f2027,50:203a43,100:2c5364&height=200&section=header&text=Yan&fontSize=72&fontColor=e0f7fa&fontAlignY=38&desc=Data%20Science%20%7C%20ML%20%7C%20Analytics&descAlignY=58&descColor=80deea&animation=twinkling" />
+<img width="100%" src="https://capsule-render.vercel.app/api?type=waving&color=0:0f2027,50:203a43,100:2c5364&height=200&section=header&text=Raiyan&fontSize=72&fontColor=e0f7fa&fontAlignY=38&desc=Data%20Science%20%7C%20ML%20%7C%20Analytics&descAlignY=58&descColor=80deea&animation=twinkling" />
 </div>
 
 <div align="center">
@@ -21,7 +21,7 @@ Turning raw data into decisions — one model at a time.
 </div>
 
 🧠 About Me
-pythonyan = {
+pythonRaiyan = {
     "role"       : "Graduate Researcher & Data Science Enthusiast",
     "university" : "East West University, Dhaka 🎓",
     "program"    : "MS in Data Science and Analytics",
