@@ -15,7 +15,7 @@ An AI-powered Streamlit app that converts note images into Bangla summaries, aud
 </div>
 
 <div align="center">
-👋 Hello, World! I'm Yan
+👋 Hello, World! I'm Raiyan
 MS in Data Science & Analytics · East West University, Bangladesh 🇧🇩
 Turning raw data into decisions — one model at a time.
 </div>
