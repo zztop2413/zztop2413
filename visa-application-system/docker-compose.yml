@@ -1,0 +1,143 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: visa_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: visa_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - visa_network
+
+  # MongoDB for Document Storage
+  mongodb:
+    image: mongo:7
+    container_name: visa_mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo
+      MONGO_INITDB_ROOT_PASSWORD: mongo
+      MONGO_INITDB_DATABASE: visa_documents
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - visa_network
+
+  # Redis for Caching and Task Queue
+  redis:
+    image: redis:7-alpine
+    container_name: visa_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - visa_network
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: visa_backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/visa_db
+      MONGODB_URL: mongodb://mongo:mongo@mongodb:27017/visa_documents
+      REDIS_URL: redis://redis:6379
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
+      DEBUG: "true"
+      OCR_PROVIDER: tesseract
+    volumes:
+      - ./uploads:/app/uploads
+      - ./backend:/app/backend
+      - ./config:/app/config
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: >
+      sh -c "python -c 'from backend.database.session import init_db; init_db()' &&
+             uvicorn backend.main:app --host 0.0.0.0 --port 8000"
+    networks:
+      - visa_network
+    restart: unless-stopped
+
+  # Celery Worker for Background Tasks
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: visa_celery_worker
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/visa_db
+      MONGODB_URL: mongodb://mongo:mongo@mongodb:27017/visa_documents
+      REDIS_URL: redis://redis:6379
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
+      OCR_PROVIDER: tesseract
+    volumes:
+      - ./uploads:/app/uploads
+      - ./backend:/app/backend
+      - ./config:/app/config
+    depends_on:
+      - redis
+      - postgres
+      - mongodb
+    command: celery -A backend.tasks.celery_app worker --loglevel=info
+    networks:
+      - visa_network
+    restart: unless-stopped
+
+  # Celery Beat for Scheduled Tasks
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: visa_celery_beat
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/visa_db
+      REDIS_URL: redis://redis:6379
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
+    depends_on:
+      - redis
+      - postgres
+    command: celery -A backend.tasks.celery_app beat --loglevel=info
+    networks:
+      - visa_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  mongodb_data:
+  redis_data:
+
+networks:
+  visa_network:
+    driver: bridge
